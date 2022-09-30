@@ -1,0 +1,19 @@
+name: bricklane
+channels:
+  - defaults
+  - conda-forge
+  
+dependencies:
+  - python=3.9
+  - pip
+  - jupyterlab
+  - scikit-learn>=1.0
+  - pandas
+  - numpy
+  - scipy
+  - holoviews
+  - pip:
+    - scikit-learn-intelex
+    - scikit-lego
+    
+prefix: /home/prateek/miniconda3/envs/bricklane
