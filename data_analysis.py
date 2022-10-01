@@ -187,7 +187,7 @@ if __name__ == '__main__':
             .BoxWhisker(df_plot, kdims=['location', var], vdims='log10_asking_price')
             .groupby(var)
             .overlay()
-            .opts(hv.opts.BoxWhisker(width=800, height=400, xrotation=90, show_grid=True, show_legend=False, outlier_color='gray', outlier_alpha=0.2, ylabel='log10 (asking_price)'))
+            .opts(hv.opts.BoxWhisker(width=800, height=400, xrotation=90, show_grid=True, show_legend=False, outlier_color='gray', outlier_alpha=0.2, ylabel='log10 (asking_price)', box_alpha=0.5))
             )
     
     
@@ -223,10 +223,14 @@ if __name__ == '__main__':
 
     display(df_coef)
     
+    colormap = {'house':'#e41a1c', 'flat':'#377eb8'}
     for property_type, df_property in df_coef.groupby('property_type'):
         o = (hv
-             .Bars(df_property, 'location', 'growth_2_yr', label=property_type)
-             .opts(width=600, height=350, xrotation=90, tools=['hover'])
+             .Bars(df_property, 'location', 'growth_2_yr', label=property_type.capitalize())
+             .opts(width=600, height=350, 
+                   xrotation=90, tools=['hover'], 
+                   color=colormap[property_type], alpha=0.5, show_legend=False,
+                   ylabel='Growth over 2 yrs')
             )
         display(o*hv.HLine(1).opts(color='black', line_dash='dashed'))
     
