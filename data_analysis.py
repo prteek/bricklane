@@ -156,8 +156,9 @@ if __name__ == '__main__':
     display(hv.Histogram(np.histogram(np.log10(df_listing['asking_price'])))
             .opts(xlabel='log_asking_price'))
     
+    grouping_col = 'property_type'
     for location, df_location in df_listing.groupby('location'):
-        overlay = plot_daily_price(df_location, np.mean, 'property_type')
+        overlay = plot_daily_price(df_location, np.mean, grouping_col)
         display(overlay.opts(hv.opts.Scatter(title=location)))
     
     # asking_price ranges from 100000 to 19000000, seems like capped at lower end specially for Wolverhampton
@@ -194,42 +195,43 @@ if __name__ == '__main__':
     # Which locations have experienced the fastest growth in asking prices over the period ?
     
     # We can group by date to remove any variation during the day since we're interested in longer term behavior
-        
+
     coef_list = []
-    
+    grouping_col = 'property_type'
     for location, df_location in df_listing.groupby('location'):
-        overlay = plot_daily_price(df_location, lambda x: np.log10(np.mean(x)), 'property_type')
+        overlay = plot_daily_price(df_location, lambda x: np.log10(np.mean(x)), grouping_col)
         
         regs = []
-        for property_type, df_property in df_location.groupby('property_type'):
-            reg_, coef, intercept = make_reg_plot(df_property.assign(log10_asking_price=lambda x: np.log10(x['asking_price'])), 
+        for group, df_group in df_location.groupby(grouping_col):
+            reg_, coef, intercept = make_reg_plot(df_group.assign(log10_asking_price=lambda x: np.log10(x['asking_price'])), 
                                                   'listing_dt', 
                                                   'log10_asking_price')
-            display(f"{property_type} - Slope: {coef[0]}, Intercept: {round(intercept,2)}")
+            display(f"{group} - Slope: {coef[0]}, Intercept: {round(intercept,2)}")
             
-            coef_list.append({'location': location, 'property_type': property_type,
+            coef_list.append({'location': location, 'group': group,
                              'coef': coef[0], 'intercept': intercept})
             regs.append(reg_)
             
         o = overlay.opts(hv.opts.Scatter(title=location))*hv.Overlay(regs)
-        display(o.opts(title=location))
+        display(o)
         
     
     df_coef = (pd.
                DataFrame(coef_list)
                .assign(growth_2_yr = lambda x: 10**(x['coef']*2*365))
-               .sort_values(['property_type', 'growth_2_yr'], ascending=False)
+               .sort_values(['group', 'growth_2_yr'], ascending=False)
               )
 
     display(df_coef)
     
-    colormap = {'house':'#e41a1c', 'flat':'#377eb8'}
-    for property_type, df_property in df_coef.groupby('property_type'):
+    colormap = {'flat':'#377eb8', 'house':'#e41a1c'}
+    # colormap = {'freehold':'#377eb8', 'leasehold':'#e41a1c', 'unknown':'984ea3'}
+    for group, df_group in df_coef.groupby('group'):
         o = (hv
-             .Bars(df_property, 'location', 'growth_2_yr', label=property_type.capitalize())
+             .Bars(df_group, 'location', 'growth_2_yr', label=group.capitalize())
              .opts(width=600, height=350, 
                    xrotation=90, tools=['hover'], 
-                   color=colormap[property_type], alpha=0.5, show_legend=False,
+                   color=colormap[group], alpha=0.5, show_legend=False,
                    ylabel='Growth over 2 yrs')
             )
         display(o*hv.HLine(1).opts(color='black', line_dash='dashed'))
