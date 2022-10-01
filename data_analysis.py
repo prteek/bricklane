@@ -212,7 +212,7 @@ if __name__ == '__main__':
                              'coef': coef[0], 'intercept': intercept})
             regs.append(reg_)
             
-        o = overlay.opts(hv.opts.Scatter(title=location))*hv.Overlay(regs)
+        o = overlay.opts(hv.opts.Scatter(title=location, ylabel='log10 (asking_price)'))*hv.Overlay(regs)
         display(o)
         
     
