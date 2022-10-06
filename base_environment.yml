@@ -15,5 +15,6 @@ dependencies:
   - pip:
     - scikit-learn-intelex
     - scikit-lego
+    - yellowbrick
     
 prefix: /home/prateek/miniconda3/envs/bricklane
