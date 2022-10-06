@@ -83,7 +83,7 @@ def plot_daily_price(df, agg_func=np.mean, transform_func=lambda x:x, grouping_c
     for group, df_group in agg.groupby(grouping_col):
         df_group['asking_price'] = transform_func(df_group['asking_price'].values.reshape(-1,1))
         scatter = hv.Scatter(hv.Dataset(df_group, 'listing_dt', 'asking_price', label=group))
-        dist = hv.Distribution(df_group, 'asking_price')
+        dist = hv.Distribution(df_group, 'asking_price').opts(show_grid=True)
         overlay_list.append(scatter << dist)
 
     overlay = (hv.Overlay(overlay_list)
@@ -129,9 +129,7 @@ def qqplot(data):
 if __name__ == '__main__':
     
     df_listing = pd.read_csv('listing.csv').assign(listing_dt = lambda x: pd.to_datetime(x['listing_dt']))
-  
-    df_listing    
-    
+      
     df_listing.info() # No null values in data except in bathroom_count (82124)
     
     df_listing['listing_id'].unique().shape # One entry per listing
@@ -197,11 +195,11 @@ if __name__ == '__main__':
     grouping_col = 'property_type'
     for location, df_location in df_listing.groupby('location'):
         overlay = plot_daily_price(df_location, agg_func=np.median, grouping_col=grouping_col)
-        display(overlay.opts(hv.opts.Scatter(title=location)))
+        display(overlay.opts(hv.opts.Scatter(title=location, ylim=(80000,500000))))
     
     # asking_price ranges from 100000 to 19000000, seems like capped at lower end specially for Wolverhampton
     # elongated tail so need to use medians instead of mean and probably log of asking price values
-    # Gillingham has flat data which appears capped at the top starting around pandemic
+    # Gillingham flat price data appears capped at the top starting around pandemic
     # Leicester has few outliers earlier in 2020 with very high prices
     
     # ------------ Questions -------------- #
