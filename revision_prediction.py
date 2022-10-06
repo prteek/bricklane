@@ -143,11 +143,11 @@ if __name__ == '__main__':
                      
     display(high_revision.merge(df_listing, on='listing_id'))
     
-    top_listing_ids = high_revision['listing_id'].iloc[5:] 
+    top_listing_ids = high_revision['listing_id'].iloc[:5] 
     (df_revision
      .query("listing_id in @top_listing_ids")
      .groupby('listing_id')
-     .apply(lambda x: display(hv.Scatter(x, 'price_revision_dt', 'revised_purchase_price',
+     .apply(lambda x: display(hv.Curve(x, 'price_revision_dt', 'revised_purchase_price',
                                         label=str(x['listing_id'].iloc[0]))
                               .sort('price_revision_dt')
                               .opts(width=400, show_grid=True)
@@ -156,13 +156,13 @@ if __name__ == '__main__':
     )
     
     
-    display(hv.Curve(df_revision.groupby('price_revision_dt').count(), 'price_revision_dt', 'revised_purchase_price').opts(width=600, show_grid=True, tools=['hover']))
+    display(hv.Curve(df_revision.groupby('price_revision_dt').count(), 'price_revision_dt', 'revised_purchase_price', label='Price revisions').opts(width=600, show_grid=True, tools=['hover']))
     
     
     # Repeated listing id in df_revision some high number of changes on a single property
     # Top 5 repeated listings (total 1214 revisions) are from Richmond possibly 3 properties only. The revised values alternate between 2 levels
     # Calculate revision based on price since revisions happen without a change in price listing_id = 1887087, perhaps some other attribute gets revised
-    # Other multiple revision properties look okay in terms of revision proces so we can keep them and only take last revision.
+    # Other multiple revision properties look okay in terms of revision prices so we can keep them and only take last revision.
     # 
     # Can consider number of revisions as a value to Poisson regress upon in future
     # Many revisions happen on 26 Dec
@@ -187,7 +187,7 @@ if __name__ == '__main__':
                  .query("revision < 1")
                  .assign(revision = lambda x: x['revision'].map({-1:1,0:0}),
                         log10_asking_price = lambda x: np.log10(x['asking_price']))
-                 .drop(['day_listed', 'time_listed', 'week_listed'], axis=1)
+                 # .drop(['day_listed', 'time_listed', 'week_listed'], axis=1)
                 )
     
     display(hv
@@ -227,7 +227,7 @@ if __name__ == '__main__':
                   .pipe(add_features)
                   .assign(log10_asking_price = lambda x: np.log10(x['asking_price']))
                   .query("revision < 1") # < 2% data points where price increased so we'll drop them for now
-                  .sample(frac=0.5, random_state=42)
+                  # .sample(frac=0.5, random_state=42)
                   .reset_index(drop=True)
                  )
     logging.warning("Using only a fraction of total data for training")
@@ -254,9 +254,8 @@ if __name__ == '__main__':
     cb.fit(y_train, y_test)
     cb.show()
     
-    sample_weights_train = compute_sample_weight(class_weight="balanced", y=y_train)
-
-    estimator = LogisticRegressionCV(Cs=np.logspace(-8,4,20), cv=5, scoring='f1', n_jobs=-1, class_weight='balanced',max_iter=100, random_state=42)
+    
+    estimator = LogisticRegressionCV(Cs=np.logspace(-8,4,20), cv=5, scoring='f1', n_jobs=-1, class_weight='balanced',max_iter=200, random_state=42)
 
     categorical_features = ['property_type', 'tenure', 'location']
     categorical_feature_engineering = ColumnTransformer([('me', MeanEncoder(), categorical_features), 
@@ -281,9 +280,9 @@ if __name__ == '__main__':
     # plot_confusion_matrix(dummy_model, X_train, y_train)
     
     plot_confusion_matrix(model, X_train, y_train)
-    display(plot_cm_proba(model, X_train, y_train))
+    display(plot_cm_proba(model, X_train, y_train).opts(hv.opts.Histogram(xlabel='predicted probability of revision')))
 
-    display(pd.DataFrame(np.c_[extended_columns, model[-1].coef_[0]], columns=['name', 'coef']).sort_values('coef', ascending=False))
+    display(pd.DataFrame(np.c_[extended_columns, np.round(model[-1].coef_[0],4)], columns=['name', 'coef']).sort_values('coef', ascending=False).reset_index(drop=True))
     
     display(model[-1].C_)
     RocCurveDisplay.from_estimator(model, X_train, y_train);
@@ -338,7 +337,7 @@ if __name__ == '__main__':
 
     list_o = []
     for y_pred in [0,1]:
-        list_o.append(hv.Histogram(np.histogram(df_reading.query("y_pred==@y_pred").get('time_listed'), density=True)).opts(alpha=0.2))
+        list_o.append(hv.Histogram(np.histogram(df_reading.query("y_pred==@y_pred").get('time_listed'), density=True), label=f"Predicted={y_pred}").opts(alpha=0.2))
         
     hv.Overlay(list_o)
     
@@ -367,9 +366,12 @@ if __name__ == '__main__':
             .query("revision==0 and y_pred==1")
             .groupby(categorical_features)
             .count()
-            .sort_values(['bedroom_count'] + categorical_features, ascending=False)
-            .head()
+            .rename({'bedroom_count':'false positive count'}, axis=1)
+            .sort_values(['false positive count'] + categorical_features, ascending=False)
+            .get(['false positive count'])
+            .head(10)
            )
+    
     
     
     
