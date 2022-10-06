@@ -227,10 +227,10 @@ if __name__ == '__main__':
                   .pipe(add_features)
                   .assign(log10_asking_price = lambda x: np.log10(x['asking_price']))
                   .query("revision < 1") # < 2% data points where price increased so we'll drop them for now
-                  # .sample(frac=0.5, random_state=42)
+                  .sample(frac=1, random_state=42)
                   .reset_index(drop=True)
                  )
-    logging.warning("Using only a fraction of total data for training")
+    # logging.warning("Using only a fraction of total data for training")
     
     features = ['property_type', 'tenure', 'bedroom_count', 'location', 'time_listed', 'log10_asking_price', 'day_listed', 'week_listed']
     
